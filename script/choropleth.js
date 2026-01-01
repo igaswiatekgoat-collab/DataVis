@@ -1,5 +1,8 @@
 
 function init() {
+    // Show loading spinner
+    showLoading("map");
+    
     let w = 1000;
     let h = 700;
     const sensitivity = 75;
@@ -77,14 +80,23 @@ function init() {
         .pointRadius(4);
 
     // Load the JSON file and draw the map
-    d3.csv("dataset/NZ_MIGRATION.csv").then(function (d) {
-        d3.json("dataset/world.json").then(function (json) {
-            let dataValue;
-            for (var i = 0; i < d.length; i++) {
-                let dataState = d[i].country; // Get the LGA from the CSV 
-                let dataYear = parseInt(d[i].year);
-                if (dataYear == selectedValue) {
-                    console.log(dataYear);
+    d3.csv("dataset/NZ_MIGRATION.csv")
+        .then(function (d) {
+            // Validate data
+            if (!d || d.length === 0) {
+                throw new Error("No migration data available");
+            }
+            
+            return d3.json("dataset/world.json").then(function (json) {
+                // Hide loading spinner after data loaded
+                hideLoading("map");
+                
+                let dataValue;
+                for (var i = 0; i < d.length; i++) {
+                    let dataState = d[i].country; // Get the LGA from the CSV 
+                    let dataYear = parseInt(d[i].year);
+                    if (dataYear == selectedValue) {
+                        console.log(dataYear);
                     dataValue = parseFloat(d[i].estimate);
                 }// Get the unemployment rate from the CSV data
                 for (var j = 0; j < json.features.length; j++) {
@@ -260,8 +272,18 @@ function init() {
                 });
 
             console.log(nzLocation);
+        })
+        .catch(function(error) {
+            // Handle errors gracefully
+            console.error("Error loading GeoJSON:", error);
+            handleDataError(error, "map");
         });
     })
+    .catch(function(error) {
+        // Handle CSV loading errors
+        console.error("Error loading CSV:", error);
+        handleDataError(error, "map");
+    });
 
     let zoom = d3.zoom().on('zoom', function (event) {
         if (event.transform.k > 0.3) {
